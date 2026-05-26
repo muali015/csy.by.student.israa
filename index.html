@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>أول تطبيقات الدفعة الاستثنائية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00bfff">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/clouds/192/alarm-clock.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 70px; /* مساحة لشريط التنقل الثابت */
+        }
+
+        .nav-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(15, 12, 41, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            border-bottom: 1px solid rgba(0, 191, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-bar a {
+            color: #00bfff;
+            text-decoration: none;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav-bar a.active {
+            background: #00bfff;
+            color: #000;
+        }
+
+        .nav-bar a.share-btn {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        .app-section { display: none; animation: fadeIn 0.5s ease; }
+        .app-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* تنسيقات مشتركة */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #00bfff;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .live-clock {
+            font-size: 3.5em;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            letter-spacing: 5px;
+            margin: 20px 0;
+        }
+
+        .add-alarm-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 191, 255, 0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #00bfff;
+        }
+
+        .time-wheel-group {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .time-wheel {
+            flex: 1;
+            min-width: 120px;
+            border: 2px solid #00bfff;
+            border-radius: 18px;
+            background: #fff;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .time-wheel label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+            color: #333;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .time-wheel select {
+            border: none;
+            background: transparent;
+            color: #000;
+            font-size: 1.5em;
+            width: 100%;
+            padding: 10px 0;
+            text-align: center;
+            font-weight: 700;
+            appearance: none;
+        }
+
+        .time-separator {
+            width: 30px;
+            text-align: center;
+            font-size: 2em;
+            font-weight: 900;
+            color: #00bfff;
+        }
+
+        .time-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .time-controls button {
+            width: calc(50% - 6px);
+            padding: 12px 10px;
+            border: 2px solid #00bfff;
+            border-radius: 14px;
+            background: #fff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .time-controls button:hover {
+            background: rgba(0, 191, 255, 0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 191, 255, 0.15);
+        }
+
+        .sound-preview {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        #selectedSoundLabel {
+            color: #000;
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 191, 255, 0.3);
+        }
+
+        .sound-preview button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            background: #00bfff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .sound-preview button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.3);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(0, 191, 255, 0.3);
+            border-radius: 8px;
+            background: #fff;
+            color: #000;
+            font-size: 1em;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00ff88, #00bfff);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .alarms-list {
+            margin-top: 30px;
+        }
+
+        .alarms-list h2 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #00bfff;
+        }
+
+        .alarm-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(0, 191, 255, 0.4);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .alarm-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #00ff88;
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .alarm-card.disabled {
+            opacity: 0.6;
+        }
+
+        .alarm-info {
+            flex: 1;
+            text-align: right;
+        }
+
+        .alarm-time {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .alarm-subject {
+            color: #00bfff;
+            margin-bottom: 5px;
+        }
+
+        .alarm-status {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .alarm-actions {
+            display: flex;
+            gap: 8px;
+            margin-right: 15px;
+        }
+
+        .toggle-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-on {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .toggle-off {
+            background: #666;
+            color: #fff;
+        }
+
+        .toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .delete-btn {
+            padding: 8px 12px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #ff2222;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .empty-state p {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 600px) {
+            .alarm-card {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+
+            .alarm-actions {
+                width: 100%;
+                margin-right: 0;
+                margin-top: 10px;
+                justify-content: flex-end;
+            }
+
+            .live-clock {
+                font-size: 2.5em;
+            }
+        }
+
+    /* واجهة الرنين */
+    #ringingOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 12, 41, 0.95);
+        z-index: 1000;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        animation: flash-bg 2s infinite;
+    }
+
+    @keyframes flash-bg {
+        0% { background: rgba(15, 12, 41, 0.95); }
+        33% { background: rgba(255, 68, 68, 0.5); } /* وميض أحمر هادئ */
+        66% { background: rgba(0, 191, 255, 0.5); } /* وميض أزرق سماوي */
+        100% { background: rgba(15, 12, 41, 0.95); }
+    }
+
+    .ringing-content h2 {
+        font-size: 2.5em;
+        color: #00ff88;
+        margin-bottom: 20px;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .ringing-image {
+        width: 150px;
+        height: 150px;
+        margin-bottom: 20px;
+        border-radius: 20px;
+        object-fit: cover;
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+
+    .btn-stop {
+        padding: 20px 40px;
+        font-size: 1.5em;
+        background: #00bfff;
+        color: #000;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    /* تنسيقات المهام والجدول المستوردة */
+    .task-card {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-right: 5px solid #00bfff;
+    }
+    .task-card.completed { opacity: 0.5; text-decoration: line-through; }
+    .schedule-grid { display: grid; gap: 15px; margin-bottom: 30px; }
+    .day-card { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; border: 1px solid rgba(0, 191, 255, 0.3); }
+    .day-title { color: #00bfff; font-size: 1.2em; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 191, 255, 0.2); }
+    .slot { background: rgba(0, 0, 0, 0.2); margin-bottom: 8px; padding: 10px; border-radius: 8px; font-size: 0.9em; }
+        .slot.official-slot { border: 1px solid #00ff88; background: rgba(0, 255, 136, 0.1); }
+        .task-card.official-task { 
+            border: 2px solid #00ff88; 
+            background: rgba(0, 255, 136, 0.15); 
+            position: relative;
+            order: -1; /* تجعلها في البداية عند استخدام flex */
+        }
+        .official-badge { background: #00ff88; color: #000; font-size: 0.7em; padding: 2px 5px; border-radius: 4px; margin-left: 5px; font-weight: bold; }
+        #tasksList { display: flex; flex-direction: column; }
+    .slot-input { background: transparent; border: 1px dashed #555; color: #fff; width: 100%; margin-bottom: 5px; padding: 3px; }
+    .save-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #00ff88; color: #000; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; display: none; z-index: 100; }
+    .quote-box { background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; font-style: italic; color: #00ff88; }
+    
+    /* تنسيقات قناة المطور */
+    .channel-message {
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 4px solid #00ff88;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 0 12px 12px 0;
+        position: relative;
+    }
+    .message-date {
+        font-size: 0.7em;
+        color: #888;
+        margin-top: 8px;
+        display: block;
+    }
+    .dev-badge {
+        background: #00ff88;
+        color: #000;
+        font-size: 0.7em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="nav-bar">
+        <a onclick="showSection('alarmSection')" id="nav-alarm" class="active">⏰ المنبه</a>
+        <a onclick="showSection('tasksSection')" id="nav-tasks">📝 المهام</a>
+        <a onclick="showSection('scheduleSection')" id="nav-schedule">🗓️ الجدول</a>
+        <a onclick="showSection('devChannelSection')" id="nav-devChannel">📢 القناة</a>
+        <a class="share-btn" onclick="shareApp()">🔗 مشاركة</a>
+    </div>
+
+    <div class="container">
+        <!-- قسم المنبه -->
+        <section id="alarmSection" class="app-section active">
+            <div class="header">
+                <h1>🛡️ منبه الأمن السيبراني</h1>
+                <div class="live-clock" id="liveClock">00:00:00</div>
+            </div>
+            <div class="add-alarm-section">
+                <div class="form-group">
+                    <label>اختر المادة:</label>
+                    <select id="subject">
+                        <option>برمجة متقدمة</option>
+                        <option>هياكل متقطعة</option>
+                        <option>مختبر برمجة</option>
+                        <option>اللغة العربية</option>
+                        <option>مبادئ أمن معلومات</option>
+                        <option>احصاء</option>
+                        <option>تنظيم الحاسوب</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>وقت المحاضرة:</label>
+                    <div class="time-wheel-group">
+                        <div class="time-wheel">
+                            <label>الساعة</label>
+                            <select id="alarmHour"></select>
+                        </div>
+                        <div class="time-separator">:</div>
+                        <div class="time-wheel">
+                            <label>الدقيقة</label>
+                            <select id="alarmMinute"></select>
+                        </div>
+                    </div>
+                    <div class="time-controls">
+                        <button type="button" onclick="adjustTime(1)">+ 1 دقيقة</button>
+                        <button type="button" onclick="adjustTime(5)">+ 5 دقائق</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>صوت التنبيه:</label>
+                    <select id="soundType" onchange="onSoundTypeChange()">
+                        <option value="default">النغمة الافتراضية</option>
+                        <option value="tone1">نغمة خفيفة</option>
+                        <option value="tone2">نغمة قوية</option>
+                        <option value="custom">صوت خاص</option>
+                    </select>
+                    <div class="sound-preview">
+                        <button type="button" id="previewSoundBtn" onclick="previewSound()">تشغيل</button>
+                        <span id="selectedSoundLabel">الافتراضية</span>
+                    </div>
+                </div>
+                <div class="form-group" id="customSoundGroup" style="display: none;">
+                    <input type="file" id="customSoundFile" accept="audio/*" onchange="onCustomFileChange()">
+                </div>
+                <button class="btn-add" onclick="addAlarm()">إضافة منبه</button>
+                <button class="btn-add" onclick="deleteAllAlarms()" style="margin-top: 10px; background: #ff4444; color: #fff;">🗑️ حذف جميع المنبهات</button>
+            </div>
+            <div class="alarms-list">
+                <div id="alarmsList"></div>
+            </div>
+        </section>
+
+        <!-- قسم المهام -->
+        <section id="tasksSection" class="app-section">
+            <div style="text-align:right; margin-bottom:10px;">
+                <button onclick="toggleDevMode()" style="background:#ffbb33; border:none; padding:5px; border-radius:5px; cursor:pointer;">⚙️ المطور</button>
+            </div>
+            <div class="header"><h1>📝 مدير المهام</h1></div>
+            <div class="add-alarm-section">
+                <!-- منطقة إضافة مهام المطور -->
+                <div id="devTaskArea" style="display:none; border-bottom: 2px dashed #00ff88; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h3 style="color:#00ff88; margin-bottom:10px;">🛠️ إضافة مهمة رسمية (للكل)</h3>
+                    <button class="btn-add" onclick="addTask(true)" style="background:#00ff88; margin-bottom:10px;">نشر مهمة رسمية</button>
+                </div>
+
+                <input type="text" id="taskTitle" placeholder="عنوان المهمة (مثلاً: حل واجب الاحصاء)" style="margin-bottom:10px;">
+                <select id="taskPriority" style="margin-bottom:10px;">
+                    <option value="high">أولوية عالية 🔥</option>
+                    <option value="medium">أولوية متوسطة ⚡</option>
+                    <option value="low">أولوية منخفضة ☁️</option>
+                </select>
+                <label>تاريخ الاستحقاق:</label>
+                <input type="date" id="taskDueDate" style="margin-bottom:10px;">
+                <label>وقت الاستحقاق:</label>
+                <div class="time-wheel-group" style="margin-bottom:10px;">
+                    <div class="time-wheel">
+                        <label>الساعة</label>
+                        <select id="taskHour"></select>
+                    </div>
+                    <div class="time-separator">:</div>
+                    <div class="time-wheel">
+                        <label>الدقيقة</label>
+                        <select id="taskMinute"></select>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addTask(false)">إضافة المهمة الشخصية</button>
+                <button class="btn-add" onclick="exportTasks()" style="margin-top: 10px; background: #666; color: #fff;">💾 تصدير المهام (ملف نصي)</button>
+                <button class="btn-add" onclick="deleteAllTasks()" style="margin-top: 10px; background: #ff4444; color: #fff;">🗑️ حذف جميع المهام</button>
+            </div>
+            <div id="tasksList"></div>
+        </section>
+
+        <!-- قسم الجدول -->
+        <section id="scheduleSection" class="app-section">
+            <div class="quote-box" id="cyberQuote"></div>
+            <div style="text-align:right; margin-bottom:10px;">
+                <button onclick="toggleDevMode()" style="background:#ffbb33; border:none; padding:5px; border-radius:5px; cursor:pointer;">⚙️ المطور</button>
+            </div>
+            <div class="header"><h1>🗓️ الجدول الأسبوعي</h1></div>
+            <div class="schedule-grid" id="scheduleGrid"></div>
+        </section>
+
+        <!-- قسم قناة المطور -->
+        <section id="devChannelSection" class="app-section">
+            <div class="header"><h1>📢 قناة المطور</h1></div>
+            <div style="text-align:right; margin-bottom:10px;">
+                <button onclick="toggleDevMode()" style="background:#ffbb33; border:none; padding:5px; border-radius:5px; cursor:pointer;">⚙️ المطور</button>
+            </div>
+            
+            <div id="devPostArea" class="add-alarm-section" style="display:none;">
+                <textarea id="devMessageInput" placeholder="اكتب رسالة للطلاب..." style="width:100%; height:80px; padding:10px; border-radius:8px; margin-bottom:10px;"></textarea>
+                <button class="btn-add" onclick="sendDevMessage()">نشر الرسالة</button>
+            </div>
+
+            <div id="messagesList"></div>
+        </section>
+    </div>
+
+    <div class="save-bar" id="saveBar" onclick="saveSchedule()">حفظ التعديلات الجديدة 💾</div>
+
+    <!-- واجهة التنبيه النشط -->
+    <div id="ringingOverlay">
+        <div class="ringing-content">
+            <h2 id="ringingSubject">حان وقت المنبه!</h2>
+            <p id="ringingTime" style="font-size: 1.5em; margin-bottom: 30px;"></p>
+            <button class="btn-stop" onclick="stopAlarm()">الذهاب إلى المحاضرة</button>
+        </div>
+    </div>
+
+    <script>
+        // تبديل الأقسام
+        function showSection(sectionId) {
+            document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-bar a').forEach(a => a.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.getElementById('nav-' + sectionId.replace('Section', '')).classList.add('active');
+            if(sectionId === 'scheduleSection') initSchedule();
+            if(sectionId === 'devChannelSection') initDevChannel();
+            if(sectionId === 'tasksSection') {
+                // ضمان ظهور منطقة المطور إذا كان الوضع مفعلاً
+                if(document.getElementById('devTaskArea')) document.getElementById('devTaskArea').style.display = devMode ? 'block' : 'none';
+                initOfficialTasks();
+            }
+        }
+
+        function shareApp() {
+            const shareData = { title: 'تطبيق الدفعة', text: 'تابع المنبه والمهام والجدول!', url: window.location.href };
+            if (navigator.share) navigator.share(shareData);
+            else { alert("تم نسخ الرابط: " + window.location.href); }
+        }
+
+        // --- منطق المنبه ---
+        let alarms = [];
+        let ringInterval = null;
+        let vibrationInterval = null;
+        let activeAudio = null;
+
+        function adjustTime(amount) {
+            const hSelect = document.getElementById('alarmHour');
+            const mSelect = document.getElementById('alarmMinute');
+            let h = parseInt(hSelect.value);
+            let m = parseInt(mSelect.value);
+            
+            m += amount;
+            h = (h + Math.floor(m / 60)) % 24;
+            m = m % 60;
+            
+            hSelect.value = h.toString().padStart(2, '0');
+            mSelect.value = m.toString().padStart(2, '0');
+        }
+
+        // --- منطق المهام ---
+        let tasks = JSON.parse(localStorage.getItem('cyberTasks') || '[]');
+        let officialTasks = JSON.parse(localStorage.getItem('officialTasks') || '[]');
+
+        function addTask(isOfficial = false) {
+            const title = document.getElementById('taskTitle').value;
+            if (!title) return;
+            
+            const h = document.getElementById('taskHour').value;
+            const m = document.getElementById('taskMinute').value;
+            const time = `${h}:${m}`;
+            const newTask = { 
+                id: Date.now(), 
+                title, 
+                priority: isOfficial ? 'high' : document.getElementById('taskPriority').value, 
+                completed: false, 
+                dueDate: document.getElementById('taskDueDate').value, 
+                dueTime: time,
+                isOfficial: isOfficial
+            };
+
+            if(isOfficial && officialTasksRef) {
+                officialTasksRef.push(newTask);
+            } else {
+                tasks.push(newTask);
+                localStorage.setItem('cyberTasks', JSON.stringify(tasks));
+            }
+            
+            document.getElementById('taskTitle').value = '';
+            renderTasks();
+        }
+
+        function exportTasks() {
+            if (tasks.length === 0) {
+                alert("لا توجد مهام لتصديرها!");
+                return;
+            }
+
+            let textContent = "قائمة مهام الدفعة الاستثنائية - 2026\n";
+            textContent += "===================================\n\n";
+
+            tasks.forEach((t, index) => {
+                const status = t.completed ? "[تم الإنجاز]" : "[قيد الانتظار]";
+                const priority = t.priority === 'high' ? "عالية 🔥" : t.priority === 'medium' ? "متوسطة ⚡" : "منخفضة ☁️";
+                textContent += `${index + 1}. العنوان: ${t.title}\n`;
+                textContent += `   الأولوية: ${priority}\n`;
+                textContent += `   الحالة: ${status}\n`;
+                if (t.dueDate) textContent += `   التاريخ: ${t.dueDate}\n`;
+                textContent += `-----------------------------------\n`;
+            });
+
+            const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "tasks_list.txt";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('tasksList');
+            
+            // ترتيب: المهام الرسمية الجديدة أولاً، ثم المهام الشخصية
+            const sortedOfficial = [...officialTasks].reverse();
+            const sortedPersonal = [...tasks].reverse();
+            const allTasks = [...sortedOfficial, ...sortedPersonal];
+            
+            list.innerHTML = allTasks.map(t => `
+                <div class="task-card ${t.completed?'completed':''} ${t.isOfficial?'official-task':''}" 
+                     style="border-right: 5px solid ${getPriorityColor(t.priority)}">
+                    <div>
+                        <h3>${t.isOfficial?'<span class="official-badge">رسمي</span>':''}${t.title}</h3>
+                        <small>${t.dueDate || ''} ${t.dueTime || ''}</small>
+                    </div>
+                    <div>
+                        <button class="btn-done" onclick="toggleTask(${t.id}, ${t.isOfficial})">تم</button>
+                        ${(!t.isOfficial || devMode) ? `<button class="btn-delete" onclick="deleteTaskById(${t.id}, ${t.isOfficial})">حذف</button>` : ''}
+                    </div>
+                </div>`).join('');
+        }
+
+        function initOfficialTasks() {
+            // تحميل المهام الرسمية من التخزين المحلي فوراً (للعمل بدون إنترنت)
+            const cachedOfficial = JSON.parse(localStorage.getItem('officialTasks') || '[]');
+            officialTasks = cachedOfficial;
+            renderTasks();
+
+            if (officialTasksRef) {
+                officialTasksRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    officialTasks = Object.values(data).map(t => ({...t, isOfficial: true}));
+                    localStorage.setItem('officialTasks', JSON.stringify(officialTasks));
+                    renderTasks();
+                });
+            }
+        }
+
+        function deleteTaskById(id, isOfficial) {
+            if(isOfficial && devMode && officialTasksRef) {
+                officialTasksRef.once('value', s => {
+                    const data = s.val();
+                    for(let key in data) { if(data[key].id === id) officialTasksRef.child(key).remove(); }
+                });
+            } else {
+                tasks = tasks.filter(x => x.id !== id);
+                localStorage.setItem('cyberTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+
+        function toggleTask(id, isOfficial) {
+            const target = isOfficial ? officialTasks : tasks;
+            const t = target.find(x => x.id === id);
+            if(t) {
+                t.completed = !t.completed;
+                if(!isOfficial) localStorage.setItem('cyberTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) { tasks = tasks.filter(x => x.id !== id); localStorage.setItem('cyberTasks', JSON.stringify(tasks)); renderTasks(); }
+        function getPriorityColor(p) { return p==='high'?'#ff4444':p==='medium'?'#ffbb33':'#00ff88'; }
+
+        function deleteAllTasks() {
+            if (tasks.length === 0) return;
+            if (confirm('هل أنت متأكد من حذف جميع المهام؟')) {
+                tasks = [];
+                localStorage.setItem('cyberTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+
+        // --- تهيئة Firebase أولاً لمنع تعطل البرنامج ---
+        const firebaseConfig = { 
+            apiKey: "ضع_هنا_الـ_Web_API_Key_التي_ستجدها_في_الموقع",
+            databaseURL: "https://cyber-israa-default-rtdb.firebaseio.com"
+        };
+
+        try {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+            }
+        } catch (e) { console.log("Firebase Init Error:", e); }
+
+        // --- منطق قناة المطور ---
+        const announcementsRef = (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) ? firebase.database().ref('announcements') : null;
+        const officialTasksRef = (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) ? firebase.database().ref('officialTasks') : null;
+        
+        function initDevChannel() {
+            // تحميل الرسائل من التخزين المحلي أولاً (للعمل بدون إنترنت)
+            const cachedMessages = JSON.parse(localStorage.getItem('devAnnouncements') || '[]');
+            renderDevMessages(cachedMessages);
+
+            // تحديث الرسائل من Firebase عند توفر الإنترنت
+            if (announcementsRef) {
+                announcementsRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    const messagesList = Object.values(data).reverse();
+                    localStorage.setItem('devAnnouncements', JSON.stringify(messagesList));
+                    renderDevMessages(messagesList);
+                });
+            }
+            
+            // إظهار منطقة النشر إذا كان وضع المطور مفعلاً
+            document.getElementById('devPostArea').style.display = devMode ? 'block' : 'none';
+        }
+
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            }
+        }
+
+        function showBrowserNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "https://img.icons8.com/clouds/512/alarm-clock.png"
+                });
+            }
+        }
+
+        function renderDevMessages(messages) {
+            const list = document.getElementById('messagesList');
+            if (messages.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#888;">لا توجد رسائل حالياً.</p>';
+                return;
+            }
+            list.innerHTML = messages.map(m => `
+                <div class="channel-message">
+                    <span class="dev-badge">المطور</span>
+                    <p>${m.text}</p>
+                    <span class="message-date">${m.date}</span>
+                </div>
+            `).join('');
+        }
+
+        function sendDevMessage() {
+            const text = document.getElementById('devMessageInput').value;
+            if (!text || !announcementsRef) return;
+            const newMessage = { text, date: new Date().toLocaleString('ar-EG') };
+            announcementsRef.push(newMessage);
+            
+            // تحديث محلي فوري للمطور (Optimistic UI)
+            const cachedMessages = JSON.parse(localStorage.getItem('devAnnouncements') || '[]');
+            cachedMessages.unshift(newMessage);
+            localStorage.setItem('devAnnouncements', JSON.stringify(cachedMessages));
+            renderDevMessages(cachedMessages);
+            
+            document.getElementById('devMessageInput').value = '';
+        }
+
+        // --- منطق الجدول (Firebase) ---
+        const scheduleRef = (typeof firebase !== 'undefined' && firebase.apps.length > 0) ? firebase.database().ref('cyberSchedule') : null;
+        const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+        let devMode = false;
+
+        function initSchedule() {
+            const quotes = ["الأمن عملية مستمرة.", "الوعي خط الدفاع الأول.", "المعرفة قوة."];
+            document.getElementById('cyberQuote').innerText = quotes[Math.floor(Math.random()*quotes.length)];
+            
+            // تحميل الجدول من الذاكرة أولاً
+            const cachedSchedule = JSON.parse(localStorage.getItem('cyberSchedule') || '{}');
+            renderSchedule(cachedSchedule);
+
+            if (scheduleRef) {
+                scheduleRef.on('value', (s) => { 
+                    const data = s.val() || {};
+                    localStorage.setItem('cyberSchedule', JSON.stringify(data));
+                    renderSchedule(data); 
+                });
+            }
+        }
+
+        function renderSchedule(data) {
+            const grid = document.getElementById('scheduleGrid');
+            grid.innerHTML = days.map(day => `<div class="day-card"><div class="day-title">${day}</div>
+                ${[1,2].map(s => {
+                    const val = data[`${day}-${s}-sub`] || '';
+                    return `<div class="slot ${val ? 'official-slot' : ''}">${devMode?`<input class="slot-input" id="${day}-${s}-sub" value="${val}">`: `<strong>${val || 'فارغ'}</strong>`}</div>`;
+                }).join('')}
+            </div>`).join('');
+        }
+
+        function toggleDevMode() { 
+            if(prompt("كلمة السر:")==="MmUu11"){ 
+                devMode = !devMode; 
+                if(document.getElementById('saveBar')) document.getElementById('saveBar').style.display = devMode?'block':'none';
+                if(document.getElementById('devPostArea')) document.getElementById('devPostArea').style.display = devMode?'block':'none';
+                if(document.getElementById('devTaskArea')) document.getElementById('devTaskArea').style.display = devMode?'block':'none';
+                if(document.getElementById('scheduleSection').classList.contains('active')) initSchedule();
+                if(document.getElementById('devChannelSection').classList.contains('active')) initDevChannel();
+                if(document.getElementById('tasksSection').classList.contains('active')) renderTasks();
+            } else { alert("كلمة السر خاطئة!"); }
+        }
+
+        function saveSchedule() {
+            const updatedScheduleData = {};
+            days.forEach(day => {
+                for(let slot=1; slot<=2; slot++) { // Assuming 2 slots per day
+                    const subInput = document.getElementById(`${day}-${slot}-sub`);
+                    if (subInput) updatedScheduleData[`${day}-${slot}-sub`] = subInput.value;
+                }
+            });
+            if (scheduleRef) scheduleRef.set(updatedScheduleData).then(() => {
+                alert("تم تحديث الجدول عند جميع الطلاب بنجاح! 🚀"); devMode = false; document.getElementById('saveBar').style.display = 'none'; initSchedule();
+            }).catch((error) => { alert("فشل التحديث: " + error.message); });
+            else alert("Firebase غير مهيأ أو غير متاح للحفظ.");
+        }
+
+        // تهيئة الساعات
+        function populateTimeDropdowns(hourId, minuteId) {
+            const hSelect = document.getElementById(hourId);
+            const mSelect = document.getElementById(minuteId);
+            if(!hSelect || !mSelect) return;
+            
+            hSelect.innerHTML = '';
+            mSelect.innerHTML = '';
+            
+            for (let i = 0; i < 24; i++) {
+                let v = i.toString().padStart(2, '0');
+                hSelect.innerHTML += `<option value="${v}">${v}</option>`;
+            }
+            for (let i = 0; i < 60; i++) {
+                let v = i.toString().padStart(2, '0');
+                mSelect.innerHTML += `<option value="${v}">${v}</option>`;
+            }
+            const now = new Date();
+            hSelect.value = now.getHours().toString().padStart(2, '0');
+            mSelect.value = now.getMinutes().toString().padStart(2, '0');
+        }
+
+        // اختيار حالة ملف الصوت
+        function onSoundTypeChange() {
+            document.getElementById('customSoundGroup').style.display = document.getElementById('soundType').value === 'custom' ? 'block' : 'none';
+        }
+
+        function onCustomFileChange() {
+            const file = document.getElementById('customSoundFile').files[0];
+            const label = document.getElementById('selectedSoundLabel');
+            const previewBtn = document.getElementById('previewSoundBtn');
+            if (file) {
+                label.innerText = file.name;
+                previewBtn.disabled = false;
+            } else {
+                label.innerText = 'اختر ملف صوتي أولاً';
+                previewBtn.disabled = true;
+            }
+        }
+
+        function previewSound() {
+            const soundType = document.getElementById('soundType').value;
+            if (soundType === 'custom') {
+                const file = document.getElementById('customSoundFile').files[0];
+                if (!file) {
+                    alert('اختر ملف صوتي حتى تستمع له');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => playCustomSound(reader.result);
+                reader.readAsDataURL(file);
+                return;
+            }
+            playBuiltInSound(soundType);
+        }
+
+        // إضافة منبه جديد
+        function addAlarm() {
+            const hour = document.getElementById('alarmHour').value;
+            const minute = document.getElementById('alarmMinute').value;
+            const time = `${hour}:${minute}`;
+            const subject = document.getElementById('subject').value;
+            const soundType = document.getElementById('soundType').value;
+            const soundFileInput = document.getElementById('customSoundFile');
+
+            if (!time) {
+                alert("الرجاء اختيار الوقت!");
+                return;
+            }
+            
+            const newAlarm = {
+                id: Date.now(),
+                time: time,
+                subject: subject,
+                enabled: true,
+                soundType: soundType,
+                soundName: 'النغمة الافتراضية', // Default name
+                lastTriggered: ""
+            };
+
+            if (soundType === 'custom') {
+                const file = soundFileInput.files[0];
+                if (!file) { alert('اختر ملف صوتي أولاً!'); return; }
+                newAlarm.soundName = file.name; // Use file name for custom sound
+                const reader = new FileReader();
+                reader.onload = () => {
+                    newAlarm.soundData = reader.result;
+                    alarms.push(newAlarm);
+                    renderAlarms();
+                    // Reset form
+                    document.getElementById('alarmHour').value = new Date().getHours().toString().padStart(2, '0');
+                    document.getElementById('alarmMinute').value = new Date().getMinutes().toString().padStart(2, '0');
+                    document.getElementById('soundType').value = 'default';
+                    document.getElementById('selectedSoundLabel').innerText = 'النغمة الافتراضية';
+                    document.getElementById('customSoundFile').value = '';
+                    document.getElementById('customSoundGroup').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alarms.push(newAlarm);
+                renderAlarms();
+                // Reset form
+                document.getElementById('alarmHour').value = new Date().getHours().toString().padStart(2, '0');
+                document.getElementById('alarmMinute').value = new Date().getMinutes().toString().padStart(2, '0');
+                document.getElementById('soundType').value = 'default';
+                document.getElementById('selectedSoundLabel').innerText = 'النغمة الافتراضية';
+                document.getElementById('customSoundFile').value = '';
+                document.getElementById('customSoundGroup').style.display = 'none';
+            }
+        }
+
+        // عرض المنبه
+        function renderAlarms() {
+            const list = document.getElementById('alarmsList');
+            if (alarms.length === 0) {
+                list.innerHTML = '<div class="empty-state"><p>لا توجد منبهات محددة حالياً</p></div>';
+                return;
+            }
+            list.innerHTML = alarms.map(alarm => `
+                <div class="alarm-card ${!alarm.enabled ? 'disabled' : ''}">
+                    <div class="alarm-info">
+                        <div class="alarm-time">${alarm.time}</div>
+                        <div class="alarm-subject">${alarm.subject}</div>
+                        <div class="alarm-status">${alarm.enabled ? '✓ مفعّل' : '✗ معطّل'}</div>
+                        <div class="alarm-status">الصوت: ${alarm.soundName || 'النغمة الافتراضية'}</div>
+                    </div>
+                    <div class="alarm-actions">
+                        <button class="toggle-btn ${alarm.enabled ? 'toggle-on' : 'toggle-off'}" 
+                                onclick="toggleAlarm(${alarm.id})">
+                            ${alarm.enabled ? 'تعطيل' : 'تفعيل'}
+                        </button>
+                        <button class="delete-btn" onclick="deleteAlarm(${alarm.id})">حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // تفعيل/تعطيل المنبه
+        function toggleAlarm(id) {
+            const alarm = alarms.find(a => a.id === id);
+            if (alarm) {
+                alarm.enabled = !alarm.enabled;
+                renderAlarms();
+            }
+        }
+
+        // حذف المنبه
+        function deleteAlarm(id) {
+            if (confirm('هل تؤكد حذف المنبه؟')) {
+                alarms = alarms.filter(a => a.id !== id);
+                renderAlarms();
+            }
+        }
+
+        function deleteAllAlarms() {
+            if (alarms.length === 0) return;
+            if (confirm('هل أنت متأكد من حذف جميع المنبهات؟')) {
+                alarms = [];
+                renderAlarms();
+            }
+        }
+
+        // التحقق من جميع المنبهات (بدلاً من إنشاء Interval لكل منبه)
+        function checkAlarms() {
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + 
+                              now.getMinutes().toString().padStart(2, '0');
+            const todayKey = now.toDateString() + "_" + currentTime;
+
+            // Use a temporary array if you need to modify 'alarms' within the loop,
+            // or iterate over a copy. For checking and triggering, direct iteration is fine.
+            [...alarms].forEach(alarm => {
+                // التحقق من أن المنبه مفعّل، الوقت مطابق، ولم يعمل مسبقاً في هذه الدقيقة اليوم
+                if (alarm.enabled && alarm.time === currentTime && alarm.lastTriggered !== todayKey) {
+                    alarm.lastTriggered = todayKey; 
+                    triggerAlarm(alarm);
+                }
+            });
+        }
+
+        // تشغيل صوت التنبيه
+        function triggerAlarm(alarm) {
+            document.getElementById('ringingSubject').innerText = `⏰ حان وقت: ${alarm.subject}`;
+            document.getElementById('ringingTime').innerText = `الوقت الآن: ${alarm.time}`;
+            
+            document.getElementById('ringingOverlay').style.display = 'flex';
+
+            // تكرار الصوت
+            playAlarmSound(alarm, true);
+
+            // بدء الاهتزاز (يعمل على الهواتف فقط)
+            if ("vibrate" in navigator) {
+                try {
+                    vibrationInterval = setInterval(() => {
+                        navigator.vibrate([500, 300, 500]); // اهتزاز لمدة 500ms ثم توقف 300ms ثم اهتزاز 500ms
+                    }, 1500);
+                } catch (e) {
+                    console.error("Vibration failed:", e);
+                }
+            }
+
+            // لا يوجد توقف تلقائي هنا، المستخدم يوقفه يدوياً
+            // renderAlarms(); // لا حاجة لإعادة عرض المنبهات هنا
+        }
+
+        function stopAlarm() {
+            document.getElementById('ringingOverlay').style.display = 'none';
+            if (ringInterval) {
+                clearInterval(ringInterval);
+                ringInterval = null;
+            }
+            if (vibrationInterval) clearInterval(vibrationInterval);
+            if ("vibrate" in navigator) navigator.vibrate(0); // إيقاف أي اهتزاز حالي
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio.currentTime = 0;
+            }
+        }
+        function playAlarmSound(alarm, loop = false) {
+            if (alarm.soundType === 'custom' && alarm.soundData) {
+                playCustomSound(alarm.soundData, loop);
+                return;
+            }
+            
+            if (loop) {
+                if (ringInterval) clearInterval(ringInterval);
+                ringInterval = setInterval(() => {
+                    if (document.getElementById('ringingOverlay').style.display === 'flex') {
+                        playBuiltInSound(alarm.soundType);
+                    }
+                }, 2000);
+            }
+            playBuiltInSound(alarm.soundType);
+        }
+
+        function playCustomSound(dataUrl, loop = false) {
+            const audio = new Audio(dataUrl);
+            audio.loop = loop;
+            audio.volume = 0.8;
+            audio.play().catch(() => console.log('تعذر تشغيل الصوت'));
+            activeAudio = audio;
+        }
+
+        let globalAudioCtx = null;
+        function playBuiltInSound(type) {
+            try {
+                if (!globalAudioCtx) {
+                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const audioContext = globalAudioCtx;
+
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                const now = audioContext.currentTime;
+                let time = now;
+                const pattern = type === 'tone2' ? [1100, 900] : type === 'tone1' ? [700, 600] : [800, 600];
+
+                for (let i = 0; i < 10; i++) {
+                    oscillator.frequency.setValueAtTime(pattern[i % 2], time);
+                    time += 0.15;
+                }
+
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+
+                oscillator.start(now);
+                oscillator.stop(now + 1.5);
+            } catch (e) {
+                console.error("Audio generation failed:", e);
+            }
+        }
+
+        // تحديث الساعة الحية
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+
+            const clockElement = document.getElementById('liveClock'); // Get the element once
+            if (clockElement) { // Check if the element exists before attempting to update it
+                clockElement.innerText = `${hours}:${minutes}:${seconds}`;
+            }
+
+            checkAlarms();
+        }
+
+        setInterval(updateClock, 1000);
+
+        // التشغيل الأولي
+        updateClock();
+        showSection('alarmSection'); // عرض قسم المنبه افتراضياً
+        populateTimeDropdowns('alarmHour', 'alarmMinute');
+        populateTimeDropdowns('taskHour', 'taskMinute');
+        renderTasks();
+    </script>
+        <footer style="text-align: center; padding: 20px; color: #888; margin-top: auto;">
+            <p>&copy; 2026 جميع الحقوق محفوظة للمطور (muali015)</p>
+        </footer>
+    </body>
+</html>
