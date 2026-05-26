@@ -828,6 +828,7 @@
         const announcementsRef = (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) ? firebase.database().ref('announcements') : null;
         const officialTasksRef = (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) ? firebase.database().ref('officialTasks') : null;
         
+        let isFirstLoadAnnouncements = true;
         function initDevChannel() {
             // تحميل الرسائل من التخزين المحلي أولاً (للعمل بدون إنترنت)
             const cachedMessages = JSON.parse(localStorage.getItem('devAnnouncements') || '[]');
@@ -840,6 +841,11 @@
                     const messagesList = Object.values(data).reverse();
                     localStorage.setItem('devAnnouncements', JSON.stringify(messagesList));
                     renderDevMessages(messagesList);
+                    if (!isFirstLoadAnnouncements && messagesList.length > cachedMessages.length) {
+                        showBrowserNotification("رسالة جديدة", "قام المطور بنشر رسالة جديدة في القناة.");
+                        playNotificationSound();
+                    }
+                    isFirstLoadAnnouncements = false;
                 });
             }
             
@@ -899,6 +905,7 @@
         const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
         let devMode = false;
 
+        let isFirstLoadSchedule = true;
         function initSchedule() {
             const quotes = ["الأمن عملية مستمرة.", "الوعي خط الدفاع الأول.", "المعرفة قوة."];
             document.getElementById('cyberQuote').innerText = quotes[Math.floor(Math.random()*quotes.length)];
@@ -912,6 +919,11 @@
                     const data = s.val() || {};
                     localStorage.setItem('cyberSchedule', JSON.stringify(data));
                     renderSchedule(data); 
+                    if (!isFirstLoadSchedule) {
+                        showBrowserNotification("تحديث الجدول", "تم تحديث الجدول الدراسي، تحقق من المواعيد الجديدة!");
+                        playNotificationSound();
+                    }
+                    isFirstLoadSchedule = false;
                 });
             }
         }
@@ -1196,6 +1208,42 @@
         }
 
         let globalAudioCtx = null;
+        function playNotificationSound() {
+            try {
+                if (!globalAudioCtx) {
+                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const audioContext = globalAudioCtx;
+
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                const now = audioContext.currentTime;
+                
+                // نغمة مزدوجة (Ding-Ding)
+                const frequencies = [880, 1109]; // نغمات موسيقية متناغمة
+                
+                frequencies.forEach((freq, i) => {
+                    const startTime = now + (i * 0.15);
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(freq, startTime);
+                    gainNode.gain.setValueAtTime(0.1, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.4);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + 0.4);
+                });
+            } catch (e) {
+                console.error("فشل تشغيل صوت التنبيه:", e);
+            }
+        }
+
         function playBuiltInSound(type) {
             try {
                 if (!globalAudioCtx) {
@@ -1255,6 +1303,8 @@
         populateTimeDropdowns('alarmHour', 'alarmMinute');
         populateTimeDropdowns('taskHour', 'taskMinute');
         renderTasks();
+        // طلب إذن الإشعارات عند التشغيل
+        requestNotificationPermission();
     </script>
         <footer style="text-align: center; padding: 20px; color: #888; margin-top: auto;">
             <p>&copy; 2026 جميع الحقوق محفوظة للمطور (muali015)</p>
